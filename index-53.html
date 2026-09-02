@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Runnercode — اجراکننده کد HTML</title>
+<meta name="description" content="Runnercode یک ابزار آنلاین برای نوشتن و اجرای زنده‌ی کد HTML، CSS و JavaScript است — بدون نیاز به تنظیمات، در یک فایل واحد.">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="favicon-512.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+
+<style>
+  :root {
+    --bg: #121216;
+    --panel: #1a1a20;
+    --border: #2a2a34;
+    --text: #e2e8f0;
+    --text-dim: #8b8d9b;
+    --accent: #f0a83c;
+    --mono: 'JetBrains Mono', Consolas, monospace;
+    --sans: system-ui, -apple-system, sans-serif;
+  }
+  body.light {
+    --bg: #f4f4f7;
+    --panel: #ffffff;
+    --border: #e0e0e6;
+    --text: #1c1c22;
+    --text-dim: #6b6b76;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    height: calc(var(--vh, 1vh) * 100);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: background .2s, color .2s;
+  }
+
+  /* Topbar */
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 14px;
+    height: 54px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+  .brand {
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .brand .dot {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+  }
+
+  .spacer { flex: 1; }
+
+  .actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .btn {
+    height: 36px;
+    padding: 0 12px;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: center;
+    font-size: 12.5px;
+    font-family: var(--sans);
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.icon-only { width: 36px; padding: 0; }
+  .btn.primary { background: var(--accent); color: #000; border: none; font-weight: 700; }
+  .btn.primary:hover { opacity: 0.9; color: #000; }
+  .btn.danger { color: #ef4444; border-color: #3a2226; }
+  .btn.danger:hover { background: #ef4444; color: #fff; border-color: #ef4444; }
+  .btn.support {
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .btn.support:hover { background: var(--accent); color: #000; }
+
+  /* Main split workspace */
+  .main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: 0;
+  }
+
+  .pane {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    border-inline-start: 1px solid var(--border);
+  }
+  .pane:first-child { border-inline-start: none; }
+
+  /* Mobile: tabs instead of ports, each pane gets the full height */
+  .tabbar { display: none; }
+  @media (max-width: 760px) {
+    .topbar {
+      flex-wrap: nowrap;
+      height: 54px;
+      padding: 0 14px;
+      overflow-x: auto;
+    }
+    .topbar .btn span.label { display: none; }
+    .btn { padding: 0 10px; white-space: nowrap; }
+    .brand-btn { font-size: 12px; padding: 0 4px; flex-shrink: 0; }
+    .spacer { flex: none; width: 8px; flex-shrink: 0; }
+    .actions { flex-shrink: 0; }
+
+    .tabbar {
+      display: flex;
+      flex-shrink: 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .tabbar button {
+      flex: 1;
+      height: 40px;
+      background: var(--panel);
+      color: var(--text-dim);
+      border: none;
+      border-bottom: 2px solid transparent;
+      font-family: var(--sans);
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .tabbar button.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .main { grid-template-columns: 1fr; }
+    .pane { display: none; border-inline-start: none; }
+    .pane.active { display: flex; }
+  }
+
+  .pane-head {
+    height: 34px;
+    flex-shrink: 0;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    font-size: 11.5px;
+    color: var(--text-dim);
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    font-family: var(--mono);
+  }
+  @media (max-width: 760px) {
+    .pane-head { display: none; }
+  }
+
+  .editor-wrap {
+    flex: 1;
+    min-height: 0;
+  }
+  .CodeMirror {
+    height: 100% !important;
+    background: var(--bg) !important;
+    color: var(--text) !important;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+
+  /* Preview Pane */
+  .preview-wrap {
+    flex: 1;
+    background: #fff;
+    min-height: 0;
+    position: relative;
+  }
+  iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+  }
+  .empty-hint {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #b8b8c2;
+    font-size: 13px;
+    pointer-events: none;
+    font-family: var(--sans);
+  }
+
+  .preview-wrap.fs-active {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: #fff;
+  }
+
+  .fs-btn {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    border: none;
+    background: rgba(0,0,0,.55);
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+  }
+  .fs-btn:hover { background: rgba(0,0,0,.75); }
+
+  #fileInput { display: none; }
+
+  .brand-btn {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-weight: 600;
+    font-size: 12.5px;
+    font-family: var(--sans);
+    cursor: pointer;
+    padding: 0 4px;
+    flex-shrink: 0;
+  }
+  .brand-btn:hover { color: var(--accent); }
+
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.6);
+    z-index: 999;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    max-width: 420px;
+    width: 100%;
+    padding: 22px;
+  }
+  .modal-box h2 { font-size: 16px; margin-bottom: 10px; }
+  .modal-box p { font-size: 13.5px; color: var(--text-dim); line-height: 1.9; margin-bottom: 18px; }
+  .modal-box .btn { width: 100%; }
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <button class="brand-btn" id="aboutBtn">درباره</button>
+    <div class="spacer"></div>
+    <div class="actions">
+      <button class="btn" id="importBtn">آپلود</button>
+      <button class="btn" id="exportBtn">دانلود</button>
+      <button class="btn danger" id="clearBtn">پاک‌سازی</button>
+      <button class="btn icon-only" id="themeBtn" title="حالت روشن/تیره">🌙</button>
+      <!-- لینک دونیت/حمایت رو همین‌جا جایگزین کن -->
+      <a class="btn support" id="supportBtn" href="https://daramet.com/Miladvpanalyse" target="_blank" rel="noopener">حمایت از ما</a>
+    </div>
+    <input type="file" id="fileInput" accept=".html,.htm,.txt">
+  </div>
+
+  <div class="modal-overlay" id="aboutModal">
+    <div class="modal-box">
+      <h2>درباره‌ی Runnercode</h2>
+      <!-- متن توضیحات سایت رو همین‌جا جایگزین کن -->
+      <p>این ابزار برای نوشتن و اجرای زنده‌ی کد HTML طراحی شده. کد رو در تب «کد» بنویس، نتیجه رو در تب «پیش‌نمایش» ببین، و در پایان با دکمه‌ی «دانلود» فایلت رو ذخیره کن.</p>
+      <p><b style="color:var(--text);">زبان‌های پشتیبانی‌شده:</b> HTML، CSS، JavaScript</p>
+      <button class="btn" id="closeAbout">بستن</button>
+    </div>
+  </div>
+
+  <div class="tabbar">
+    <button class="tab-btn active" data-pane="0">کد</button>
+    <button class="tab-btn" data-pane="1">پیش‌نمایش</button>
+  </div>
+
+  <div class="main">
+    <div class="pane active" data-pane="0">
+      <div class="pane-head">کد HTML</div>
+      <div class="editor-wrap">
+        <textarea id="code"></textarea>
+      </div>
+    </div>
+    <div class="pane" data-pane="1">
+      <div class="pane-head">پیش‌نمایش زنده</div>
+      <div class="preview-wrap">
+        <iframe id="preview"></iframe>
+        <div class="empty-hint" id="emptyHint">کد بنویسید تا این‌جا رندر شود</div>
+        <button class="fs-btn" id="fsBtn" title="نمایش تمام‌صفحه">⛶</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const iframe = document.getElementById('preview');
+
+  // درباره‌ی ما
+  const aboutModal = document.getElementById('aboutModal');
+  document.getElementById('aboutBtn').addEventListener('click', () => aboutModal.classList.add('open'));
+  document.getElementById('closeAbout').addEventListener('click', () => aboutModal.classList.remove('open'));
+  aboutModal.addEventListener('click', e => { if (e.target === aboutModal) aboutModal.classList.remove('open'); });
+  const emptyHint = document.getElementById('emptyHint');
+  const body = document.body;
+
+  // رفع مشکل ارتفاع صفحه روی موبایل (نوار آدرس مرورگر)
+  function setViewportHeight() {
+    document.documentElement.style.setProperty('--vh', window.innerHeight * 0.01 + 'px');
+  }
+  setViewportHeight();
+  window.addEventListener('resize', setViewportHeight);
+  window.addEventListener('orientationchange', setViewportHeight);
+
+  // تب‌های موبایل: جابه‌جایی بین کد و پیش‌نمایش
+  const tabBtns = document.querySelectorAll('.tab-btn');
+  const panes = document.querySelectorAll('.pane');
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabBtns.forEach(b => b.classList.remove('active'));
+      panes.forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelector('.pane[data-pane="' + btn.dataset.pane + '"]').classList.add('active');
+      if (btn.dataset.pane === '0') cm.refresh();
+    });
+  });
+
+  const cm = CodeMirror.fromTextArea(document.getElementById('code'), {
+    lineNumbers: true,
+    mode: 'htmlmixed',
+    tabSize: 2,
+    lineWrapping: true
+  });
+
+  // پیش‌نمایش زنده، ایزوله در iframe
+  function updatePreview() {
+    const code = cm.getValue();
+    emptyHint.style.display = code.trim() ? 'none' : 'flex';
+    const doc = iframe.contentDocument || iframe.contentWindow.document;
+    doc.open();
+    doc.write(code);
+    doc.close();
+  }
+  cm.on('change', updatePreview);
+  updatePreview(); // بدون کد پیش‌فرض؛ فقط وضعیت خالی را نشان می‌دهد
+
+  // نمایش تمام‌صفحه‌ی پیش‌نمایش
+  const fsBtn = document.getElementById('fsBtn');
+  const previewWrap = document.querySelector('.preview-wrap');
+  fsBtn.addEventListener('click', () => {
+    previewWrap.classList.toggle('fs-active');
+    fsBtn.textContent = previewWrap.classList.contains('fs-active') ? '✕' : '⛶';
+  });
+
+  // دانلود فایل
+  document.getElementById('exportBtn').addEventListener('click', () => {
+    const code = cm.getValue();
+    if (!code.trim()) return;
+    const blob = new Blob([code], { type: 'text/html;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'index.html';
+    link.click();
+    URL.revokeObjectURL(link.href);
+  });
+
+  // آپلود فایل
+  const fileInput = document.getElementById('fileInput');
+  document.getElementById('importBtn').addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => cm.setValue(ev.target.result);
+    reader.readAsText(file);
+  });
+
+  // پاکسازی
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    cm.setValue('');
+  });
+
+  // حالت روشن/تیره
+  const themeBtn = document.getElementById('themeBtn');
+  themeBtn.addEventListener('click', () => {
+    body.classList.toggle('light');
+    themeBtn.textContent = body.classList.contains('light') ? '☀' : '🌙';
+    cm.refresh();
+  });
+</script>
+
+</body>
+</html>
