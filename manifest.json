@@ -1,0 +1,16 @@
+{
+  "name": "Runnercode",
+  "short_name": "Runnercode",
+  "description": "اجرای آنلاین کد HTML، CSS و JavaScript",
+  "lang": "fa",
+  "dir": "rtl",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#121216",
+  "theme_color": "#121216",
+  "icons": [
+    { "src": "/favicon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/favicon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
